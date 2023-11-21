@@ -1,0 +1,16 @@
+     {entries.map((entry, index) => (
+          <div key={index} className="border p-3 mb-3">
+            {/* Display the entry's data */}
+            <p><strong>Entry {index + 1}:</strong></p>
+            <p>Block: {entry.block}</p>
+            <p>GP: {entry.gp}</p>
+            <p>Vendor Name: {entry.vendorName}</p>
+            <p>Scope: {entry.scope}</p>
+            <p>Date: {entry.dateOfEntry}</p>
+            <p>Work Done: {entry.workDone}</p>
+            <p>Labour: {entry.labour}</p>
+            <p>Total Work Done: {entry.totalWorkDone}</p>
+          </div>
+        ))}
+
+{generateReport()}
