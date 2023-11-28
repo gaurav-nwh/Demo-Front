@@ -1,13 +1,10 @@
 import axios from "axios";
 
-  export const api = axios.create({
-    baseURL: "http://localhost:8080",  
-  });
+  export const api = axios.create({  baseURL: "http://localhost:8080"});
 
 
   // export const api = axios.create({ baseURL: "http://34.203.98.156:8080" });
-  // 
-// 
+
 export const authenticateUser = (data) => {
   setAuthToken(data);
   return;

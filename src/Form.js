@@ -11,71 +11,113 @@ const MyForm = () => {
     block: '',
     name: '',
     vendorName: '',
-    scope: '',
-    dateOfEntry: currentDate,
-    workDone: '',
-    labour: '',
-    totalWorkDone: '',
+    status: '',
+    dateOfEntry: '',
+    daysTillDate: '',
+    statusOfWork: '',
+    remark: '',
   });
 
   const [entries, setEntries] = useState([]);
   const [vendorData, setVendorData] = useState([]);
+  const [vendorData2, setVendorData2] = useState([]);
   const [gpData, setGpData] = useState([]);
-
- useEffect(() => {
-  const fetchVendors = async () => {
-    try {
-      const response = await api.post('/get-vendors');
-      console.log("Vendor Response:", response);
-
-      const result = await errorHandler(response);
-      if (result.data && result.data.success) {
-        setVendorData(result.data.data || []); // Ensure a default empty array if data is undefined
-      } else {
-        console.error('Error fetching vendors:', result.data.message);
-        // alert(result.data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-      alert(error.message);
-    }
-  };
-
-  fetchVendors();
-}, []);
-
-// Modify your existing code to fetch GPs
-
-useEffect(() => {
-  const fetchGPs = async () => {
-    try {
-      const response = await api.post('/get-gps');
-      console.log("GP Response:", response.data);
-
-      const result = await errorHandler(response);
-      if (result.data && result.data.success) {
-        setGpData(result.data.data || []); // Ensure a default empty array if data is undefined
-      } else {
-        console.error('Error fetching GPs:', result.data.message);
-        // alert(result.data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching GPs:', error);
-      alert(error.message);
-    }
-  };
-
-  fetchGPs();
-}, []);
-
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-
+  const [projects, setProjects] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [daysTillDate, setDaysTillDate] = useState('');
+  const [remark, setRemark] = useState('');
   const [uniqueDates, setUniqueDates] = useState([]);
+
+
+
+
+  const handleRemarkChange = (event) => {
+    setRemark(event.target.value);
+  };
+
+
+  const handleDaysChange = (event) => {
+    // Use a regular expression to allow only integer values
+    const value = event.target.value.replace(/\D/g, '');
+    setDaysTillDate(value);
+  };
+
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const response = await api.post('/get-vendors');
+        console.log("Vendor Response:", response);
+
+        const result = await errorHandler(response);
+        if (result.data && result.data.success) {
+          setVendorData(result.data.data || []); // Ensure a default empty array if data is undefined
+        } else {
+          console.error('Error fetching vendors:', result.data.message);
+          // alert(result.data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching vendors:', error);
+        alert(error.message);
+      }
+    };
+
+    fetchVendors();
+  }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await api.post('/get-projects');
+        console.log("Projects Response:", response.data);
+
+        const result = await errorHandler(response);
+        if (result.data && result.data.success) {
+          setProjects(result.data.data || []); // Ensure a default empty array if data is undefined
+        } else {
+          console.error('Error fetching Projects:', result.data.message);
+          // alert(result.data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching Projects:', error);
+        alert(error.message);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleChange = (e, fieldType) => {
+    const { name, value } = e.target;
+    // setFormData({ ...formData, [name]: value });
+    let updatedFormData = { ...formData, [name]: value };
+
+
+    const selectedProject = projects.find((project) => project.name === value);
+
+    if (fieldType === 'project') {
+      setGpData(selectedProject.gpName);
+      let vendorIds = selectedProject.vendorAssignedTo
+      let filteredVendors = vendorData.filter(vendor => vendorIds.includes(vendor._id));
+      setVendorData2(filteredVendors)
+    }
+    if (name === 'workDone' || name === 'scope' || name === 'totalWorkDone') {
+      const workDone = parseFloat(updatedFormData.workDone) || 0;
+      const scope = parseFloat(updatedFormData.scope) || 1; // Avoid division by zero
+      const totalWorkDone = parseFloat(updatedFormData.totalWorkDone) || 0;
+
+      updatedFormData = {
+        ...updatedFormData,
+        percentage: ((workDone / scope) * 100).toFixed(2),
+        totalPercentage: ((totalWorkDone / scope) * 100).toFixed(2),
+      };
+    }
+
+    setFormData(updatedFormData);
+
+
+
+
+  };
 
   useEffect(() => {
     let dates = [];
@@ -92,23 +134,8 @@ useEffect(() => {
     // Create a copy of entries array and add the current formData
     const updatedEntries = [...entries, { ...formData }];
 
-    // Group entries by vendor name, gp, and block
-    // const groupedEntries = updatedEntries.reduce((acc, entry) => {
-    //   const key = `${entry.vendorName}/${entry.gp}/${entry.block}`;
-    //   acc[key] = acc[key] || [];
-    //   acc[key].push({
-    //     dateOfEntry: entry.dateOfEntry,
-    //     labour: entry.labour,
-    //     totalWorkDone: entry.totalWorkDone,
-    //   });
-    //   return acc;
-    // }, {});
 
-    // const groupedEntriesArray = Object.values(groupedEntries);
 
-    //   console.log(groupedEntriesArray)
-
-    // Set the state with the updated entries and combined data
     setEntries(updatedEntries);
 
     console.log(updatedEntries)
@@ -117,91 +144,55 @@ useEffect(() => {
       block: '',
       name: '',
       vendorName: '',
-      scope: '',
-      dateOfEntry: currentDate,
-      workDone: '',
-      labour: '',
-      totalWorkDone: '',
+      status: '',
+      dateOfEntry: '',
+      daysTillDate: '',
+      statusOfWork: '',
+      remark: '',
     });
   };
+  const handleSubmit = async () => {
+    try {
+      // Assuming you have an API endpoint for submitting entries, adjust the URL accordingly
+      const response = await api.post('/submit-entries', { entries });
+      console.log('Submit Entries Response:', response);
 
-
-  //   const generateReport = () => {
-  //     // Group entries by date
-  //     const groupedEntries = updatedEntries.reduce((acc, entry) => {
-  //         const key = `${entry.vendorName}-${entry.gp}-${entry.block}`;
-  //         acc[key] = acc[key] || [];
-  //         acc[key].push({
-  //           dateOfEntry: entry.dateOfEntry,
-  //           labour: entry.labour,
-  //           totalWorkDone: entry.totalWorkDone,
-  //         });
-  //         return acc;
-  //       }, {});
-
-  //     console.log(groupedEntries)
-
-  //     // Get unique dates
-  //     const dates = Object.keys(groupedEntries);
-  //     console.log(dates)
-  //     // Generate the report table
-  //     const reportTable = (
-  //       <table className="table">
-  //         <thead>
-  //           <tr>
-  //             <th>S.No.</th>
-  //             <th>Block</th>
-  //             <th>GP</th>
-  //             <th>Vendor</th>
-  //             <th>Work Done As On Date</th>
-  //             {dates.map((date, index) => (
-  //               <th key={index}>{date}</th>
-  //             ))}
-  //           </tr>
-  //         </thead>
-  //         <tbody>
-  //           {entries.map((entry, index) => (
-  //             <tr key={index}>
-  //               <td>{index + 1}</td>
-  //               <td>{entry.block}</td>
-  //               <td>{entry.gp}</td>
-  //               <td>{entry.vendorName}</td>
-  //               <td>{entry.workDone}</td>
-  //               {dates.map((date, innerIndex) => (
-  //                 <td key={innerIndex}>
-  //                   {groupedEntries[date]
-  //                     .filter((groupedEntry) => groupedEntry.dateOfEntry === date)
-  //                     .map((groupedEntry, innerInnerIndex) => (
-  //                       <div key={innerInnerIndex}>
-  //                         Labour: {groupedEntry.labour}, Work Done: {groupedEntry.totalWorkDone}
-  //                       </div>
-  //                     ))}
-  //                 </td>
-  //               ))}
-  //             </tr>
-  //           ))}
-  //         </tbody>
-  //       </table>
-  //     );
-
-  //     return reportTable;
-  //   };
+      // Handle the response as needed
+      const result = await errorHandler(response);
+      if (result.data && result.data.success) {
+        // Clear the entries after successful submission
+        setEntries([]);
+      } else {
+        console.error('Error submitting entries:', result.data.message);
+        // Handle error appropriately (e.g., show an error message)
+      }
+    } catch (error) {
+      console.error('Error submitting entries:', error);
+      // Handle error appropriately (e.g., show an error message)
+    }
+  };
 
   return (
     <div className="container mt-5">
       <form className="row g-3">
         <div className="col-sm-2">
-          <label htmlFor="block" className="form-label">Block</label>
-          <input
-            type="text"
-            className="form-control"
+          <label htmlFor="block" className="form-label">Project Name</label>
+          <select
+            className="form-select"
             id="block"
             name="block"
             value={formData.block}
-            onChange={handleChange}
-            placeholder="Enter Field Block"
-          />
+            onChange={(e) => handleChange(e, 'project')}
+          >
+            <option value="" >Select Project Name</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.name}>
+                {project.name}
+              </option>
+            ))}
+          </select>
         </div>
+
 
         <div className="col-sm-2">
           <label htmlFor="name" className="form-label">GP Name</label>
@@ -210,7 +201,7 @@ useEffect(() => {
             id="name"
             name="name"
             value={formData.name} // Assuming gpName is the field in your formData
-            onChange={handleChange}
+            onChange={(e) => handleChange(e, 'gp')}
           >
             <option value="" >Select GP Name</option>
             {gpData.map((gp) => (
@@ -228,10 +219,10 @@ useEffect(() => {
             id="vendorName"
             name="vendorName"
             value={formData.vendorName}
-            onChange={handleChange}
+            onChange={(e) => handleChange(e, 'vendor')}
           >
             <option value="" >Select Vendor Name</option>
-            {vendorData.map((vendor) => (
+            {vendorData2.map((vendor) => (
               <option key={vendor.id} value={vendor.id}>
                 {vendor.vendorName}
               </option>
@@ -240,141 +231,137 @@ useEffect(() => {
         </div>
 
         <div className="col-sm-2">
-          <label htmlFor="scope" className="form-label">Scope</label>
-          <input
-            type="text"
-            className="form-control"
-            id="scope"
-            name="scope"
-            value={formData.scope}
-            onChange={handleChange}
-            placeholder="Enter Scope"
-          />
-        </div>
-
-        <div className="col-sm-2">
-          <label htmlFor="layoutDone" className="form-label">Layout Done</label>
+          <label htmlFor="scope" className="form-label">Status</label>
           <select
             className="form-select"
-            id="layoutDone"
-            name="layoutDone"
-            value={formData.layoutDone}
-            onChange={handleChange}
-            placeholder="Yes or No"
+            id="status"
+            name="status"
+            value={formData.scope}
+            onChange={(e) => handleChange(e, 'status')}
           >
-            <option value="" >Select Layout Done</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+            <option value="">Select Status</option>
+            <option value="Working">Working</option>
+            <option value="Not Working">Not Working</option>
+            <option value="Under Maintenance">Under Maintenance</option>
           </select>
         </div>
-
-
         <div className="col-sm-2">
-          <label htmlFor="dateOfEntry" className="form-label">Date</label>
+          <label htmlFor="dateOfEntry" className="form-label">Deployment Date</label>
           <input
             type="date"
             className="form-control"
             id="dateOfEntry"
             name="dateOfEntry"
-            value={formData.dateOfEntry}
-            onChange={handleChange}
-            readOnly // Make the input read-only
+            value={selectedDate}
+            onChange={(e) => handleChange(e, 'dateOfEntry')}
           />
         </div>
 
-
         <div className="col-sm-2">
-          <label htmlFor="workDone" className="form-label">Work Done As On Date</label>
+          <label htmlFor="daysTillDate" className="form-label">Day's Till Date</label>
           <input
             type="text"
             className="form-control"
-            id="workDone"
-            name="workDone"
-            value={formData.workDone}
-            onChange={handleChange}
-            placeholder="Enter Work Done As On Date"
+            id="daysTillDate"
+            name="daysTillDate"
+            value={daysTillDate}
+            onChange={handleDaysChange}
+            placeholder="Enter Days"
           />
         </div>
 
+
         <div className="col-sm-2">
-          <label className="form-label">Resource Tab</label>
+          <label htmlFor="scope" className="form-label">Status of Work</label>
+          <select
+            className="form-select"
+            id="statusOfWork"
+            name="statusOfWork"
+            value={formData.scope}
+            onChange={(e) => handleChange(e, 'statusOfWork')}
+          >
+            <option value="">Select Status</option>
+            <option value="Working">Working</option>
+            <option value="Not Working">Not Working</option>
+
+          </select>
+        </div>
+
+        <div className="col-sm-2">
+          <label htmlFor="remark" className="form-label">Remark</label>
           <input
             type="text"
             className="form-control"
-            id="labour"
-            name="labour"
-            value={formData.labour}
-            onChange={handleChange}
-            placeholder="Enter Labour"
+            id="remark"
+            name="remark"
+            value={remark}
+            onChange={handleRemarkChange}
+            placeholder="Enter Remark"
           />
         </div>
 
-        <div className="col-sm-2">
-          <label htmlFor="totalWorkDone" className="form-label">Total Work Done</label>
-          <input
-            type="text"
-            className="form-control"
-            id="totalWorkDone"
-            name="totalWorkDone"
-            value={formData.totalWorkDone}
-            onChange={handleChange}
-            placeholder="Enter Total Work Done"
-          />
-        </div>
-
-        <div className="col-sm-2">
+        <div >
+          <br />
           <button type="button" className="btn btn-success" onClick={handleAddEntry}>
             Add
           </button>
         </div>
 
 
-        {/*    
-        <div>
-          <h2>Entries:</h2>
-          <pre>{JSON.stringify(entries, null, 2)}</pre>
-        </div> */}
         <div className="col-sm-12 mt-3">
           <h2>Entries:</h2>
           <div className="container">
             <table className="table">
               <thead>
                 <tr>
+                  <th>Serial No</th>
                   <th>Vendor Name</th>
+                  <th>Status</th>
                   <th>GP</th>
                   <th>Block</th>
                   {uniqueDates.map(date => (
                     <th key={date} colSpan={2}>
                       {date}
                     </th>
+
                   ))}
+
                 </tr>
                 {uniqueDates.length > 0 && (
                   <tr>
                     <th></th>
                     <th></th>
                     <th></th>
-                    <th>Labour</th>
-                    <th>Total Work Done</th>
+                    <th></th>
+                    <th></th>
+                    <th>Deployment Date</th>
+                    <th>Day's till date</th>
+                    <th>Status of Work</th>
+                    <th>Remarks</th>
                   </tr>
                 )}
               </thead>
 
-              
+
               <tbody>
                 {entries.map((entry, index) => (
                   <tr key={index}>
+                    <td>{index + 1}</td>
                     <td>{entry.vendorName}</td>
                     <td>{entry.name}</td>
                     <td>{entry.block}</td>
+
                     {uniqueDates.map(date => {
                       const matchingEntry = entries.find(
                         e => e.dateOfEntry === date && e.vendorName === entry.vendorName
                       );
+
                       return (
                         <React.Fragment key={date}>
-                          <td>{matchingEntry ? matchingEntry.labour : ''}</td>
-                          <td>{matchingEntry ? matchingEntry.totalWorkDone : ''}</td>
+                          <td>{entry.dateOfEntry}</td>
+                          <td>{entry.daysTillDate}</td>
+                          <td>{entry.statusOfWork}</td>
+                          <td>{entry.remark}</td>
                         </React.Fragment>
                       );
                     })}
@@ -386,7 +373,10 @@ useEffect(() => {
         </div>
         <div className="row">
           <div className="col-12">
-            <button type="submit" className="btn btn-primary">Submit</button>
+            <button type="submit" className="btn btn-primary" style={{ marginRight: "15px" }}>Clear Entry</button>
+            <button type="button" className="btn btn-primary" onClick={handleSubmit}>
+              Submit
+            </button>
           </div>
         </div>
 
